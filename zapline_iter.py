@@ -1,5 +1,5 @@
 import numpy as np
-from mne.time_frequency import  psd_array_multitaper
+from mne.time_frequency import psd_array_multitaper
 from meegkit.dss import dss_line
 import matplotlib.pylab as plt
 import numpy as np
@@ -43,7 +43,7 @@ def zapline_until_gone(data, target_freq, sfreq, win_sz=10, spot_sz=2.5, viz=Fal
         data, art = dss_line(data.transpose(), target_freq, sfreq, nremove=1)
         del art
         data = data.transpose()
-        psd, freq = psd_array_multitaper(data, sfreq)
+        psd, freq = psd_array_multitaper(data, sfreq, verbose=False)
         
         freq_rn_ix = [
             np.where(freq >= freq_rn[0])[0][0], 
@@ -62,7 +62,9 @@ def zapline_until_gone(data, target_freq, sfreq, win_sz=10, spot_sz=2.5, viz=Fal
         p = np.poly1d(pf)
         clean_fit_line = p(freq_used)
         residuals = mean_psd - clean_fit_line
+        aggr_resid.append(np.mean(residuals))
         tf_ix = np.where(freq_used <= target_freq)[0][-1]
+        print("Iteration:", iterations, "Power above the fit:", residuals[tf_ix])
 
         if viz:
             f, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(12,6), facecolor="gray", gridspec_kw={"wspace":0.2})
@@ -89,6 +91,7 @@ def zapline_until_gone(data, target_freq, sfreq, win_sz=10, spot_sz=2.5, viz=Fal
 
             ax4.scatter(np.arange(iterations), aggr_resid)
             plt.savefig("{}_{}.png".format(prefix, str(iterations).zfill(3)))
+            plt.close("all")
 
         if residuals[tf_ix] <= 0:
             break
