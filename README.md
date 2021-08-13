@@ -1,5 +1,7 @@
 # Zapline Iterator
 
+    zapline_until_gone(data, target_freq, sfreq, win_sz=10, spot_sz=2.5, viz=False, prefix="zapline_iter")
+
 Returns: clean data, number of iterations
 
 Function iteratively applies the Zapline algorithm.
