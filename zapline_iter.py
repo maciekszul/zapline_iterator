@@ -54,7 +54,7 @@ def zapline_until_gone(data, target_freq, sfreq, win_sz=10, spot_sz=2.5, viz=Fal
             np.where(freq_used >= freq_sp[0])[0][0], 
             np.where(freq_used <= freq_sp[1])[0][-1]
         ]
-        mean_psd = np.mean(psd, axis=(0, 1))[freq_rn_ix[0]:freq_rn_ix[1]]
+        mean_psd = np.mean(psd, axis=0)[freq_rn_ix[0]:freq_rn_ix[1]]
         mean_psd_wospot = copy.copy(mean_psd)
         mean_psd_wospot[freq_sp_ix[0]: freq_sp_ix[1]] = np.nan
         mean_psd_tf = nan_basic_interp(mean_psd_wospot)
