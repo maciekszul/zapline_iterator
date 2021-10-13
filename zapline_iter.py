@@ -38,11 +38,13 @@ def zapline_until_gone(data, target_freq, sfreq, win_sz=10, spot_sz=2.5, viz=Fal
     freq_rn = [target_freq - win_sz, target_freq + win_sz]
     freq_sp = [target_freq - spot_sz, target_freq + spot_sz]
 
+    norm_vals=[]
+    resid_lims=[]
     while True:
-        iterations += 1
-        data, art = dss_line(data.transpose(), target_freq, sfreq, nremove=1)
-        del art
-        data = data.transpose()
+        if iterations>0:
+            data, art = dss_line(data.transpose(), target_freq, sfreq, nremove=1)
+            del art
+            data = data.transpose()
         psd, freq = psd_array_multitaper(data, sfreq, verbose=False)
         
         freq_rn_ix = [
@@ -54,7 +56,15 @@ def zapline_until_gone(data, target_freq, sfreq, win_sz=10, spot_sz=2.5, viz=Fal
             np.where(freq_used >= freq_sp[0])[0][0], 
             np.where(freq_used <= freq_sp[1])[0][-1]
         ]
-        mean_psd = np.mean(psd, axis=(0, 1))[freq_rn_ix[0]:freq_rn_ix[1]]
+        norm_psd = np.mean(psd, axis=0)[:,freq_rn_ix[0]:freq_rn_ix[1]]
+        for ch_idx in range(norm_psd.shape[0]):
+            if iterations==0:
+                norm_val=np.max(norm_psd[ch_idx,:])
+                norm_vals.append(norm_val)
+            else:
+                norm_val=norm_vals[ch_idx]
+            norm_psd[ch_idx, :] = norm_psd[ch_idx, :]/norm_val
+        mean_psd=np.mean(norm_psd,axis=0)
         mean_psd_wospot = copy.copy(mean_psd)
         mean_psd_wospot[freq_sp_ix[0]: freq_sp_ix[1]] = np.nan
         mean_psd_tf = nan_basic_interp(mean_psd_wospot)
@@ -69,10 +79,8 @@ def zapline_until_gone(data, target_freq, sfreq, win_sz=10, spot_sz=2.5, viz=Fal
         if viz:
             f, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(12,6), facecolor="gray", gridspec_kw={"wspace":0.2})
             for sensor in range(psd.shape[1]):
-                psd_s = psd[:,sensor,:]
-                y = np.mean(psd_s, axis=0)[freq_rn_ix[0]:freq_rn_ix[1]]
-                ax1.plot(freq_used, y)
-            ax1.set_title("Mean PSD \nacross trials")
+                ax1.plot(freq_used, norm_psd[sensor,:])
+            ax1.set_title("Normalized mean PSD \nacross trials")
 
             ax2.plot(freq_used, mean_psd_tf, c="gray")
             ax2.plot(freq_used, mean_psd, c="blue")
@@ -86,15 +94,21 @@ def zapline_until_gone(data, target_freq, sfreq, win_sz=10, spot_sz=2.5, viz=Fal
             if residuals[tf_ix] <= 0:
                 scat_color = "red"
             ax3.scatter(residuals[tf_ix], freq_used[tf_ix], c=scat_color)
+            if iterations==0:
+                resid_lims=ax3.get_xlim()
+            else:
+                ax3.set_xlim(resid_lims)
 
             ax4.set_title("Iterations")
 
-            ax4.scatter(np.arange(iterations), aggr_resid)
+            ax4.scatter(np.arange(iterations+1), aggr_resid)
             plt.savefig("{}_{}.png".format(prefix, str(iterations).zfill(3)))
             plt.close("all")
 
-        if residuals[tf_ix] <= 0:
+        if iterations>0 and residuals[tf_ix] <= 0:
             break
+
+        iterations += 1
 
     return [data, iterations]
 
