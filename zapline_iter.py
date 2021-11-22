@@ -78,6 +78,8 @@ def zapline_until_gone(data, fline, sfreq, win_sz=10, spot_sz=2.5, nfft=512, sho
     max_mean = []
     max_resid = []
 
+    norm_vals=[]
+    resid_lims=[]
     while True:
         iterations += 1
         data, art = dss_line(data, fline, sfreq, nremove=1)
@@ -142,6 +144,8 @@ def zapline_until_gone(data, fline, sfreq, win_sz=10, spot_sz=2.5, nfft=512, sho
         
         if mean_score <= 0:
             break
+
+        iterations += 1
 
     return [data, iterations]
 
